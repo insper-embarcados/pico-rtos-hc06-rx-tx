@@ -31,9 +31,6 @@ Manual: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/res
   +---------------+                      +---------------+
 ```
 
-## Organização dos arquivos
-
-O projeto está organizado da seguinte maneira:
 
 ## Diagrama
 
@@ -48,7 +45,7 @@ No funcionamento típico, uma ISR (por exemplo, de UART) chama `xTaskNotify` (ou
 - Ideal para sinalizar eventos simples de ISR para tarefas.
 - A task pode “dormir” até receber a notificação, acordando apenas quando houver necessidade de atendimento ao evento.
 
-#### Diagrama do funcionamento do xTaskNotify
+#### Diagrama do funcionamento
 
 ```
             +-----------+
@@ -73,8 +70,6 @@ No funcionamento típico, uma ISR (por exemplo, de UART) chama `xTaskNotify` (ou
 - **tx_task**: Lê bytes da xQueueTX e envia via UART ao Bluetooth.
 
 
-O uso do FreeRTOS permite que essas tasks operem concorrentemente de modo eficiente, separando claramente recebimento, transmissão e interação com Bluetooth e USB serial.
-
 ## Como configurar o nome e PIN do Bluetooth
 
 No `main.c`, o nome e o PIN do módulo Bluetooth são definidos por macros:
@@ -88,6 +83,10 @@ Para utilizar outro nome ou PIN, basta alterar esses valores no início do arqui
 ## Testando a Comunicação Serial com Python
 
 Para validar, monitorar ou interagir com o HC-06 a partir do seu PC, existe um programa Python simples chamado `terminal.py` incluso na pasta `python` do repositório.
+
+![Exemplo de uso do terminal Python](imgs/tela.png)
+
+
 
 ### Funcionamento geral
 
