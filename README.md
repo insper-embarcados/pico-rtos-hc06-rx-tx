@@ -93,7 +93,7 @@ Para validar, monitorar ou interagir com o HC-06 a partir do seu PC, existe um p
 
 ### Linux
 
-### Funcionamento geral
+## Funcionamento geral
 
 O arquivo `terminal.py`, localizado na pasta `python`, permite abrir um terminal de comunicação simples, onde você deve selecionar ambas as portas COM utilizadas pelo Raspberry Pi Pico (normalmente uma para a UART do Bluetooth e outra para o console/USB).
 
