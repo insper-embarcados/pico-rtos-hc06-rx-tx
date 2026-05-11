@@ -7,41 +7,29 @@ Manual: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/res
 
 ## Conexões
 
-<table>
-  <tr>
-    <td valign="top">
-
 ### HC-06 → Pico
 
-| HC-06  | Pico      |
-|--------|-----------|
-| STATE  | GP3       |
-| RXD    | GP4 (TX1) |
-| TXD    | GP5 (RX1) |
-| ENABLE | GP6       |
-| GND    | GND       |
-| VCC    | VBUS (5V) |
-
-    </td>
-    <td valign="top">
-
+| HC-06         | Pico        |
+|---------------|-------------|
+| STATE         | GP3         |
+| RXD (3.3V In) | GP4 (TX1)   |
+| TXD (3.3V Out)| GP5 (RX1)   |
+| ENABLE        | GP6         |
+| GND           | GND         |
+| VCC           | VBUS (5V)   |
 
 ```
-      +---------------+                      +---------------+
-      |     HC-06     |                      |    RPi Pico   |
-      +---------------+                      +---------------+
-      |         STATE |  ----------------->  | GP3           |
-      | (3.3V In) RXD |  <-----------------  | GP4 (TX1)     |
-      | (3.3V Out)TXD |  ----------------->  | GP5 (RX1)     |
-      |        ENABLE |  <-----------------  | GP6           |
-      |           GND |  ----------------->  | GND           |
-      |           VCC |  <-----------------  | VBUS (5V)     |
-      +---------------+                      +---------------+
+  +---------------+                      +---------------+
+  |     HC-06     |                      |    RPi Pico   |
+  +---------------+                      +---------------+
+  |         STATE |  ----------------->  | GP3           |
+  | (3.3V In) RXD |  <-----------------  | GP4 (TX1)     |
+  | (3.3V Out)TXD |  ----------------->  | GP5 (RX1)     |
+  |        ENABLE |  <-----------------  | GP6           |
+  |           GND |  ----------------->  | GND           |
+  |           VCC |  <-----------------  | VBUS (5V)     |
+  +---------------+                      +---------------+
 ```
-
-    </td>
-  </tr>
-</table>
 
 ## Organização dos arquivos
 
