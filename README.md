@@ -36,7 +36,7 @@ Manual: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/res
 
 ### O que é e como funciona xTaskNotify
 
-`xTaskNotify` é uma função da FreeRTOS usada para enviar notificações ou pequenos sinais diretamente entre tarefas (tasks) ou de uma rotina de interrupção (ISR) para uma task. O mecanismo é leve e eficiente, permitindo que uma task seja avisada rapidamente sobre eventos ou dados disponíveis, sem a necessidade de utilizar filas ou semáforos para casos simples.
+[xTaskNotify](https://www.freertos.org/Documentation/02-Kernel/04-API-references/05-Direct-to-task-notifications/04-xTaskNotify) é uma função da FreeRTOS usada para enviar notificações ou pequenos sinais diretamente entre tarefas (tasks) ou de uma rotina de interrupção (ISR) para uma task. O mecanismo é leve e eficiente, permitindo que uma task seja avisada rapidamente sobre eventos ou dados disponíveis, sem a necessidade de utilizar filas ou semáforos para casos simples.
 
 No funcionamento típico, uma ISR (por exemplo, de UART) chama `xTaskNotify` (ou variantes como `vTaskNotifyGiveFromISR`) para alertar uma task de que há trabalho a ser feito. A task pode então esperar por essa notificação usando funções como `ulTaskNotifyTake`, processando apenas quando realmente necessário. Isso reduz o tempo gasto em interrupções e mantém o sistema mais responsivo.
 
