@@ -2,6 +2,7 @@
 #define HC06_H_
 
 #include <stdbool.h>
+#include "pico/stdlib.h"
 #include "hardware/uart.h"
 
 #define HC06_UART_ID uart1
