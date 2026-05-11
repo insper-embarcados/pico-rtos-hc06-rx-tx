@@ -72,7 +72,7 @@ No funcionamento típico, uma ISR (por exemplo, de UART) chama `xTaskNotify` (ou
 
 ## Como configurar o nome e PIN do Bluetooth
 
-No `main.c`, o nome e o PIN do módulo Bluetooth são definidos por macros:
+No `main.c`, o nome e o PIN do módulo Bluetooth são definidos conforme abaixo:
 
 ```c
 #define HC06_NAME "LAB-EXPERT-BT"
