@@ -1,8 +1,8 @@
 # HC-06 Exemplo
 
-Sistema de inicialização e configuração do módulo **HC-06** em uma **Raspberry Pi Pico 2** com **FreeRTOS**.
+Este exemplo implementa uma ponte serial bidirecional entre a UART (HC-06) e a USB (PC).
 
-Manual: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/resources/hc06.pdf
+Manual do HC-06: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/resources/hc06.pdf
 
 
 ## Conexões
