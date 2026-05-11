@@ -4,9 +4,6 @@ Sistema de inicialização e configuração do módulo **HC-06** em uma **Raspbe
 
 Manual: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/resources/hc06.pdf
 
-## No VS Code
-
-Abra o projeto na pasta raiz e use o comando `Debug Project` da extensao Raspberry Pi Pico Project.
 
 ## Conexões
 
@@ -38,7 +35,7 @@ Abra o projeto na pasta raiz e use o comando `Debug Project` da extensao Raspber
 
 O projeto está organizado da seguinte maneira:
 
-## Diagrama de tarefas e filas (RTOS)
+## Diagrama
 
 ### O que é e como funciona xTaskNotify
 
