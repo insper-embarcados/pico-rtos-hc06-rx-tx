@@ -80,6 +80,12 @@ No `main.c`, o nome e o PIN do módulo Bluetooth são definidos conforme abaixo:
 ```
 Para utilizar outro nome ou PIN, basta alterar esses valores no início do arquivo `main.c` antes de compilar o projeto.
 
+## Pareamento
+
+### Windows
+
+### Linux
+
 ## Testando a Comunicação Serial com Python
 
 Para validar, monitorar ou interagir com o HC-06 a partir do seu PC, existe um programa Python simples chamado `terminal.py` incluso na pasta `python` do repositório.
@@ -87,11 +93,6 @@ Para validar, monitorar ou interagir com o HC-06 a partir do seu PC, existe um p
 ![Exemplo de uso do terminal Python](imgs/tela.png)
 
 
-## Pareamento
-
-### Windows
-
-### Linux
 
 ## Funcionamento geral
 
