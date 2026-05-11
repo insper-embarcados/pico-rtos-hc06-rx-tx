@@ -87,6 +87,11 @@ Para validar, monitorar ou interagir com o HC-06 a partir do seu PC, existe um p
 ![Exemplo de uso do terminal Python](imgs/tela.png)
 
 
+## Pareamento
+
+### Windows
+
+### Linux
 
 ### Funcionamento geral
 
