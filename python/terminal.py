@@ -8,11 +8,11 @@ import random
 import time
 
 SPAM_WORDS = [
-    "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
-    "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa",
-    "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey",
-    "xray", "yankee", "zulu", "hello", "world", "test", "ping", "data",
-    "serial", "packet", "send", "recv", "check", "ok", "ack", "nak",
+    "marco", "corsi", "daniboy", "tiozao", "Otorrinolaringologista", "raposa", "Extraordinariamente", "hotel",
+    "Anticonstitucional", "janela", "Inconstitucional", "lima", "Responsabilidade", "novembro", "Conscientizacao", "pato",
+    "Desenvolvimento", "romeu", "Impressionante", "tatu", "Caracteristica", "vitor", "Possibilidade", "uisque",
+    "Especialidade", "zebra", "Planejamento", "mundo", "Conhecimento", "dados", "Relacionamento", "pacote",
+    "Procedimento", "enviar", "Monitoramento", "receber", "Comportamento", "ok", "Produtividade", "falha",
 ]
 
 def baud_interval(baud: int) -> float:
