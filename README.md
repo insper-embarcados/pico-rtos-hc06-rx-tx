@@ -34,40 +34,23 @@ Manual do HC-06: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-
 
 ## Diagrama
 
-### O que é e como funciona xTaskNotify
-
-[xTaskNotify](https://www.freertos.org/Documentation/02-Kernel/04-API-references/05-Direct-to-task-notifications/04-xTaskNotify) é uma função da FreeRTOS usada para enviar notificações ou pequenos sinais diretamente entre tarefas (tasks) ou de uma rotina de interrupção (ISR) para uma task. O mecanismo é leve e eficiente, permitindo que uma task seja avisada rapidamente sobre eventos ou dados disponíveis, sem a necessidade de utilizar filas ou semáforos para casos simples.
-
-No funcionamento típico, uma ISR (por exemplo, de UART) chama `xTaskNotify` (ou variantes como `vTaskNotifyGiveFromISR`) para alertar uma task de que há trabalho a ser feito. A task pode então esperar por essa notificação usando funções como `ulTaskNotifyTake`, processando apenas quando realmente necessário. Isso reduz o tempo gasto em interrupções e mantém o sistema mais responsivo.
-
-**Resumo:**
-- Notificações são leves e rápidas.
-- Ideal para sinalizar eventos simples de ISR para tarefas.
-- A task pode “dormir” até receber a notificação, acordando apenas quando houver necessidade de atendimento ao evento.
-
-#### Diagrama do funcionamento
-
 ```
-            +-----------+
-            |init_task  |
-            +-----+-----+
-                  |
-                  v
-         (faz a inicialização: UART, HC-06 etc, e termina)
-              
    (UART_IRQ)
        o
-       | xTaskNotify
+       | xQueueSendFromISR
        v
-+---------+   xQueueRX    +-------------+         xQueueTX    +---------+
-| rx_task | <------------ | serial_task | ------------------> | tx_task |
-+---------+               +-------------+                     +---------+
+  xQueueRX            +-------------+         xQueueTX    +---------+
+  [buffer] ---------> | serial_task | ------------------> | tx_task |
+                      +-------------+                     +---------+
+                            |  ^
+                     putchar|  |getchar
+                            v  |
+                           PC (USB)
 ```
 
-- **init_task**: Responsável pela configuração inicial do hardware, UART, módulo HC-06 e interrupções. Executa uma única vez no início do sistema.
-- **rx_task**: É notificada pela interrupção, lê da UART e insere bytes na fila xQueueRX.
-- **serial_task**: Faz a ponte entre o PC (via USB/serial), lê xQueueRX e mostra no PC; lê input do PC e coloca na xQueueTX.
-- **tx_task**: Lê bytes da xQueueTX e envia via UART ao Bluetooth.
+- **uart_rx_handler (ISR)**: Disparada pela interrupção da UART. Lê cada byte recebido do HC-06 e o envia diretamente para a fila `xQueueRX` via `xQueueSendFromISR`.
+- **serial_task**: Faz a ponte entre o PC (via USB/serial) e o Bluetooth. Lê bytes da `xQueueRX` e os imprime no PC; lê caracteres digitados no PC e os coloca na `xQueueTX`.
+- **tx_task**: Aguarda bytes na `xQueueTX` e os envia via UART ao módulo HC-06 (Bluetooth).
 
 
 ## Como configurar o nome e PIN do Bluetooth
