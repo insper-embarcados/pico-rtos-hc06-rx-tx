@@ -4,6 +4,22 @@ from tkinter import ttk, scrolledtext
 import serial
 import serial.tools.list_ports
 import threading
+import random
+import time
+
+SPAM_WORDS = [
+    "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
+    "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa",
+    "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey",
+    "xray", "yankee", "zulu", "hello", "world", "test", "ping", "data",
+    "serial", "packet", "send", "recv", "check", "ok", "ack", "nak",
+]
+
+def baud_interval(baud: int) -> float:
+    """Comfortable spam interval for the given baudrate (seconds).
+    A word ~10 chars at N baud → 10*10/N seconds; we use 4× for readability."""
+    char_time = 10 / baud
+    return max(0.05, 10 * char_time * 4)
 
 BAUDS = ["9600", "19200", "38400", "57600", "115200", "230400"]
 DEFAULT_BAUD = "115200"
@@ -24,6 +40,8 @@ class PanelSerial:
         self.serial = None
         self.running = False
         self.align = align
+        self.spamming = False
+        self.spam_thread = None
 
         frame = tk.Frame(parent, bg=BG)
         frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
@@ -38,6 +56,11 @@ class PanelSerial:
         self.baud_var = tk.StringVar(value=DEFAULT_BAUD)
 
         if align == "right":
+            self.btn_clear = tk.Button(top, text="Limpar", bg="#424242", fg="white",
+                                       font=FONT_UI, relief=tk.FLAT, padx=8,
+                                       command=self.clear_terminal)
+            self.btn_clear.pack(side=tk.RIGHT, padx=(4, 0))
+
             self.btn_connect = tk.Button(top, text="Conectar", bg=BG_BUTTON_CONNECT, fg="white",
                                          font=FONT_UI, relief=tk.FLAT, padx=8,
                                          command=self.toggle_connection)
@@ -66,6 +89,10 @@ class PanelSerial:
                                          command=self.toggle_connection)
             self.btn_connect.pack(side=tk.LEFT, padx=(0, 4))
 
+            self.btn_clear = tk.Button(top, text="Limpar", bg="#424242", fg="white",
+                                       font=FONT_UI, relief=tk.FLAT, padx=8,
+                                       command=self.clear_terminal)
+            self.btn_clear.pack(side=tk.LEFT, padx=(0, 4))
         self.terminal = scrolledtext.ScrolledText(frame, bg=BG_TERMINAL, fg=FG,
                                                   font=FONT_TERMINAL, relief=tk.FLAT,
                                                   wrap=tk.WORD, state=tk.DISABLED)
@@ -92,6 +119,45 @@ class PanelSerial:
                                   command=self.send)
         self.btn_send.pack(side=tk.LEFT)
 
+        self.spam_var = tk.BooleanVar(value=False)
+        self.chk_spam = tk.Checkbutton(
+            bottom, text="Spam", variable=self.spam_var,
+            bg=BG, fg="#ffb74d", selectcolor=BG,
+            activebackground=BG, activeforeground="#ffb74d",
+            font=FONT_UI, command=self.toggle_spam
+        )
+        self.chk_spam.pack(side=tk.LEFT, padx=(6, 0))
+
+        # Spam speed row — hidden until spam is enabled
+        self.spam_row = tk.Frame(frame, bg=BG)
+        # (not packed yet)
+
+        tk.Label(self.spam_row, text="Intervalo:", bg=BG, fg="#ffb74d", font=FONT_UI).pack(side=tk.LEFT, padx=(0, 4))
+
+        # Shared variable in ms (integer)
+        self.spam_ms_var = tk.StringVar(value="500")
+
+        self.spam_scale = tk.Scale(
+            self.spam_row, from_=50, to=5000, resolution=50, orient=tk.HORIZONTAL,
+            bg=BG, fg="#ffb74d", troughcolor="#333333",
+            highlightthickness=0, activebackground="#ffb74d",
+            sliderlength=16, length=160, font=FONT_UI,
+            showvalue=False, command=self._on_scale_change
+        )
+        self.spam_scale.set(500)
+        self.spam_scale.pack(side=tk.LEFT, padx=(0, 6))
+
+        self.spam_entry = tk.Entry(
+            self.spam_row, textvariable=self.spam_ms_var,
+            bg=BG_ENTRY, fg=FG_ENTRY, font=FONT_TERMINAL,
+            relief=tk.FLAT, insertbackground=FG_ENTRY, width=6,
+            justify=tk.RIGHT
+        )
+        self.spam_entry.pack(side=tk.LEFT)
+        self.spam_ms_var.trace_add("write", self._on_entry_change)
+
+        tk.Label(self.spam_row, text="ms", bg=BG, fg="#ffb74d", font=FONT_UI).pack(side=tk.LEFT, padx=(4, 0))
+
         self.refresh_ports()
 
     def write_terminal(self, text, tag=None):
@@ -105,6 +171,11 @@ class PanelSerial:
             self.terminal.config(state=tk.DISABLED)
 
         self.terminal.after(0, _write)
+
+    def clear_terminal(self):
+        self.terminal.config(state=tk.NORMAL)
+        self.terminal.delete("1.0", tk.END)
+        self.terminal.config(state=tk.DISABLED)
 
     def refresh_ports(self):
         ports = [p.device for p in serial.tools.list_ports.comports()]
@@ -135,6 +206,9 @@ class PanelSerial:
 
     def disconnect(self):
         self.running = False
+        self.spamming = False
+        self.spam_var.set(False)
+        self.spam_row.pack_forget()
         if self.serial:
             self.serial.close()
             self.serial = None
@@ -153,6 +227,60 @@ class PanelSerial:
                 self.terminal.after(0, lambda: self.write_terminal("[conexao perdida]\n", tag="error"))
                 self.terminal.after(0, lambda: self.btn_connect.config(text="Conectar", bg=BG_BUTTON_CONNECT))
                 break
+
+    def _on_scale_change(self, val):
+        """Scale moved → update entry (avoid feedback loop via flag)."""
+        if getattr(self, "_syncing", False):
+            return
+        self._syncing = True
+        self.spam_ms_var.set(str(int(float(val))))
+        self._syncing = False
+
+    def _on_entry_change(self, *_):
+        """Entry typed → update scale (only when value is valid)."""
+        if getattr(self, "_syncing", False):
+            return
+        try:
+            ms = int(self.spam_ms_var.get())
+            if 50 <= ms <= 5000:
+                self._syncing = True
+                self.spam_scale.set(ms)
+                self._syncing = False
+        except ValueError:
+            pass
+
+    def toggle_spam(self):
+        if self.spam_var.get():
+            self.spam_row.pack(fill=tk.X, pady=(2, 0))
+            self.spamming = True
+            self.spam_thread = threading.Thread(target=self._spam_loop, daemon=True)
+            self.spam_thread.start()
+            self.write_terminal("[spam iniciado]\n", tag="info")
+        else:
+            self.spam_row.pack_forget()
+            self.spamming = False
+            self.write_terminal("[spam parado]\n", tag="info")
+
+    def _spam_loop(self):
+        while self.spamming:
+            if self.serial and self.serial.is_open:
+                word = random.choice(SPAM_WORDS)
+                try:
+                    self.serial.write((word + "\r\n").encode("utf-8"))
+                    self.write_terminal(f"> {word}", tag="sent")
+                except serial.SerialException as e:
+                    self.write_terminal(f"[erro spam: {e}]\n", tag="error")
+                    self.spamming = False
+                    self.terminal.after(0, lambda: self.spam_var.set(False))
+                    break
+                try:
+                    interval = max(0.05, int(self.spam_ms_var.get()) / 1000)
+                except ValueError:
+                    interval = self.spam_scale.get() / 1000
+                time.sleep(interval)
+            else:
+                # serial not connected yet — wait a bit and retry
+                time.sleep(0.2)
 
     def send(self):
         if not self.serial or not self.serial.is_open:
