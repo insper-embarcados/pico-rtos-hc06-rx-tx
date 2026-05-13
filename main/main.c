@@ -16,10 +16,8 @@ QueueHandle_t xQueueRX;
 QueueHandle_t xQueueTX;
 
 void uart_rx_handler() {
-    while (uart_is_readable(HC06_UART_ID)) {
         uint8_t ch = uart_getc(HC06_UART_ID);
         xQueueSendFromISR(xQueueRX, &ch, 0);
-    }
 }
 
 void init_uart_hc06(void) {
