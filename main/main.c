@@ -15,6 +15,7 @@
 
 #define QUEUE_SIZE 256
 
+
 static QueueHandle_t xQueueRX;
 static QueueHandle_t xQueueTX;
 static TaskHandle_t  xRxTaskHandle;
