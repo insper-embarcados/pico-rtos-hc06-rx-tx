@@ -70,7 +70,7 @@ bool hc06_set_at_mode(int on) {
 
 static bool hc06_tentar_baud(uint baud) {
     printf("Tentando baud = %u...\n", baud);
-    uart_init(HC06_UART_ID, baud);
+    uart_set_baudrate(HC06_UART_ID, baud);
     sleep_ms(HC06_ESPERA_AT_MS);
     for (int i = 0; i < HC06_TENTATIVAS_POR_BAUD; i++) {
         if (hc06_check_connection()) return true;

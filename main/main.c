@@ -1,73 +1,71 @@
 #include <FreeRTOS.h>
-#include <task.h>
 #include <queue.h>
-
 #include <stdio.h>
 #include <string.h>
+#include <task.h>
 
-#include "pico/stdlib.h"
-#include "hardware/uart.h"
 #include "hardware/irq.h"
+#include "hardware/uart.h"
 #include "hc06.h"
+#include "pico/stdlib.h"
 
 #define HC06_NAME "LAB-EXPERT-BT"
-#define HC06_PIN  "1234"
+#define HC06_PIN "1234"
 
-#define QUEUE_SIZE 256
+QueueHandle_t xQueueRX;
+QueueHandle_t xQueueTX;
 
-
-static QueueHandle_t xQueueRX;
-static QueueHandle_t xQueueTX;
-static TaskHandle_t  xRxTaskHandle;
-
-static void hc06_rx_irq(void) {
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    uart_set_irq_enables(HC06_UART_ID, false, false);
-    vTaskNotifyGiveFromISR(xRxTaskHandle, &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+void uart_rx_handler() {
+    while (uart_is_readable(HC06_UART_ID)) {
+        uint8_t ch = uart_getc(HC06_UART_ID);
+        xQueueSendFromISR(xQueueRX, &ch, 0);
+    }
 }
 
-static void init_task(void *p) {
-    gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
+void init_uart_hc06(void) {
+    uart_init(HC06_UART_ID, HC06_BAUD_RATE);
 
-    hc06_config(HC06_NAME, HC06_PIN);
+    // Set the TX and RX pins by using the function select on the GPIO
+    // Set datasheet for more information on function select
+    gpio_set_function(HC06_TX_PIN, UART_FUNCSEL_NUM(HC06_UART_ID, HC06_TX_PIN));
+    gpio_set_function(HC06_RX_PIN, UART_FUNCSEL_NUM(HC06_UART_ID, HC06_RX_PIN));
 
+    int __unused actual = uart_set_baudrate(HC06_UART_ID, HC06_BAUD_RATE);
+
+    // Set UART flow control CTS/RTS, we don't want these, so turn them off
+    uart_set_hw_flow(HC06_UART_ID, false, false);
+
+    // Set our data format
+    uart_set_format(HC06_UART_ID, 8, 1, UART_PARITY_NONE);
+}
+
+void init_uart_irq() {
+     // Turn off FIFO's - we want to do this character by character
     uart_set_fifo_enabled(HC06_UART_ID, false);
 
-    int uart_irq = HC06_UART_ID == uart0 ? UART0_IRQ : UART1_IRQ;
-    irq_set_exclusive_handler(uart_irq, hc06_rx_irq);
-    irq_set_priority(uart_irq, configMAX_SYSCALL_INTERRUPT_PRIORITY);
-    irq_set_enabled(uart_irq, true);
+    // Set up a RX interrupt
+    // We need to set up the handler first
+    // Select correct interrupt for the UART we are using
+    int UART_IRQ = HC06_UART_ID == uart0 ? UART0_IRQ : UART1_IRQ;
+
+    // And set up and enable the interrupt handlers
+    irq_set_exclusive_handler(UART_IRQ, uart_rx_handler);
+    irq_set_enabled(UART_IRQ, true);
+
+    // Now enable the UART to send interrupts - RX only
     uart_set_irq_enables(HC06_UART_ID, true, false);
-
-    vTaskDelete(NULL);
 }
 
-static void rx_task(void *p) {
-    xRxTaskHandle = xTaskGetCurrentTaskHandle();
-
-    while (true) {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-        while (uart_is_readable(HC06_UART_ID)) {
-            uint8_t ch = uart_getc(HC06_UART_ID);
-            xQueueSend(xQueueRX, &ch, 0);
-        }
-
-        uart_set_irq_enables(HC06_UART_ID, true, false);
-    }
-}
-
-static void tx_task(void *p) {
+static void tx_task(void* p) {
     uint8_t ch;
     while (true) {
-        xQueueReceive(xQueueTX, &ch, portMAX_DELAY);
-        uart_putc_raw(HC06_UART_ID, ch);
+        if (xQueueReceive(xQueueTX, &ch, portMAX_DELAY) == pdTRUE) {
+            uart_putc_raw(HC06_UART_ID, ch);
+        }
     }
 }
 
-static void serial_task(void *p) {
+static void serial_task(void* p) {
     uint8_t ch;
     while (true) {
         int c = getchar_timeout_us(0);
@@ -87,12 +85,15 @@ static void serial_task(void *p) {
 int main(void) {
     stdio_init_all();
 
-    xQueueRX = xQueueCreate(QUEUE_SIZE, sizeof(uint8_t));
-    xQueueTX = xQueueCreate(QUEUE_SIZE, sizeof(uint8_t));
+    // inicializa uart e hc06
+    init_uart_hc06();
+    hc06_config(HC06_NAME, HC06_PIN);
+    init_uart_irq();
 
-    xTaskCreate(init_task,   "Init",   2048, NULL, 3, NULL);
-    xTaskCreate(rx_task,     "RX",     512,  NULL, 2, NULL);
-    xTaskCreate(tx_task,     "TX",     512,  NULL, 2, NULL);
+    xQueueRX = xQueueCreate(256, sizeof(uint8_t));
+    xQueueTX = xQueueCreate(256, sizeof(uint8_t));
+
+    xTaskCreate(tx_task, "TX", 512, NULL, 2, NULL);
     xTaskCreate(serial_task, "Serial", 1024, NULL, 1, NULL);
 
     vTaskStartScheduler();
