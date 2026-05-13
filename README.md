@@ -65,9 +65,8 @@ Para utilizar outro nome ou PIN, basta alterar esses valores no início do arqui
 
 ## Pareamento
 
-### Windows
-
-### Linux
+- **[Linux](https://marcqueiroz.wordpress.com/aventuras-com-arduino/configurando-hc-06-bluetooth-module-device-no-ubuntu-12-04/)**
+- **[Windows](https://embeddedprogrammer.blogspot.com/2012/07/windows-communicating-with-hc-06.html)**
 
 ## Testando a Comunicação Serial com Python
 
