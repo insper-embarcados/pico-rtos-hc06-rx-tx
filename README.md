@@ -34,19 +34,7 @@ Manual do HC-06: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-
 
 ## Diagrama
 
-```
-   (UART_IRQ)
-       o
-       | xQueueSendFromISR
-       v
-  xQueueRX            +-------------+         xQueueTX    +---------+
-  [buffer] ---------> | serial_task | ------------------> | tx_task |
-                      +-------------+                     +---------+
-                            |  ^
-                     putchar|  |getchar
-                            v  |
-                           PC (USB)
-```
+![Diagrama](imgs/diagrama.png)
 
 - **uart_rx_handler (ISR)**: Disparada pela interrupção da UART. Lê cada byte recebido do HC-06 e o envia diretamente para a fila `xQueueRX` via `xQueueSendFromISR`.
 - **serial_task**: Faz a ponte entre o PC (via USB/serial) e o Bluetooth. Lê bytes da `xQueueRX` e os imprime no PC; lê caracteres digitados no PC e os coloca na `xQueueTX`.
