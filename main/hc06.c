@@ -81,6 +81,10 @@ static bool hc06_tentar_baud(uint baud) {
 }
 
 bool hc06_config(char name[], char pin[]) {
+    
+    gpio_init(HC06_STATE_PIN);
+    gpio_set_dir(HC06_STATE_PIN, GPIO_IN);
+    
     hc06_set_at_mode(1);
 
     bool connected = false;
