@@ -164,10 +164,9 @@ alto e reduza gradualmente durante o teste.
 
 ## Referência
 
-- [Manual geral do HC-06/Linvor](https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/resources/hc06.pdf)
+- [Comandos validados para o firmware HC-06-20190901](docs/HC-06-20190901.md)
 
-Esse documento descreve uma geração anterior do firmware (`LinvorV1.n`). Ele é
-útil para pinagem e para a estrutura geral dos comandos, mas algumas respostas
-AT são diferentes das respostas do firmware `HC-06-20190901` validado neste
-projeto. Para evitar configurar uma variante incompatível, o firmware sempre
-consulta e valida `AT+VERSION` antes de alterar o módulo.
+Não foi localizado um manual oficial do fabricante para essa revisão de
+firmware. A referência acima registra apenas o comportamento verificado nos
+módulos usados neste projeto. O firmware consulta e valida `AT+VERSION` antes de
+alterar qualquer configuração.
