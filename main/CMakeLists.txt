@@ -15,13 +15,22 @@ target_include_directories(pico_emb PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     )
 
+# A porta RP2350 do FreeRTOS mantém esta variável apenas para configASSERT.
+# Em Release, o GCC 15 pode marcá-la como definida e não usada.
+target_compile_options(pico_emb PRIVATE
+    -Wno-unused-but-set-variable
+    )
+
 # Linking to FreeRTOS-Kernel-Heap4 means we use a dynamic heap for allocations
 target_link_libraries(pico_emb PRIVATE
-    pico_async_context_freertos
     FreeRTOS-Kernel-Heap4
-    hardware_i2c
     pico_stdlib
     )
+
+# O console usa a UART0 ligada ao Pico Debug Probe.
+# A UART1 (GP4/GP5) fica dedicada ao HC-06.
+pico_enable_stdio_usb(pico_emb 0)
+pico_enable_stdio_uart(pico_emb 1)
 # Set the nunber of cores to 1.
 # This defaults to 2 in FreeRTOSConfig_examples_common.h if not defined in here
 target_compile_definitions(pico_emb PRIVATE

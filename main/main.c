@@ -82,14 +82,19 @@ static void serial_task(void* p) {
 
 int main(void) {
     stdio_init_all();
-
-    // inicializa uart e hc06
-    init_uart_hc06();
-    hc06_config(HC06_NAME, HC06_PIN);
-    init_uart_irq();
+    printf("INICIANDO CONFIGURACAO\n");
 
     xQueueRX = xQueueCreate(256, sizeof(uint8_t));
     xQueueTX = xQueueCreate(256, sizeof(uint8_t));
+
+    // inicializa uart e hc06
+    init_uart_hc06();
+    if (!hc06_config(HC06_NAME, HC06_PIN)) {
+        uart_set_baudrate(HC06_UART_ID, HC06_BAUD_RATE);
+        printf("AVISO: configuracao nao aplicada; iniciando ponte em %u baud.\n",
+               HC06_BAUD_RATE);
+    }
+    init_uart_irq();
 
     xTaskCreate(tx_task, "TX", 512, NULL, 2, NULL);
     xTaskCreate(serial_task, "Serial", 1024, NULL, 1, NULL);

@@ -1,89 +1,157 @@
-# HC-06 Exemplo
+# Ponte serial HC-06 com Raspberry Pi Pico 2 e FreeRTOS
 
-Este exemplo implementa uma ponte serial bidirecional entre a UART (HC-06) e a USB (PC).
+Este projeto implementa uma ponte serial bidirecional entre um computador e um
+módulo Bluetooth HC-06 usando uma Raspberry Pi Pico 2:
 
-Manual do HC-06: https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/resources/hc06.pdf
-
-
-## Conexões
-
-### HC-06 → Pico
-
-| HC-06         | Pico        |
-|---------------|-------------|
-| STATE         | GP3         |
-| RXD (3.3V In) | GP4 (TX1)   |
-| TXD (3.3V Out)| GP5 (RX1)   |
-| ENABLE        | GP6         |
-| GND           | GND         |
-| VCC           | VBUS (5V)   |
-
-```
-  +---------------+                      +---------------+
-  |     HC-06     |                      |    RPi Pico   |
-  +---------------+                      +---------------+
-  |         STATE |  ----------------->  | GP3           |
-  | (3.3V In) RXD |  <-----------------  | GP4 (TX1)     |
-  | (3.3V Out)TXD |  ----------------->  | GP5 (RX1)     |
-  |        ENABLE |  <-----------------  | GP6           |
-  |           GND |  ----------------->  | GND           |
-  |           VCC |  <-----------------  | VBUS (5V)     |
-  +---------------+                      +---------------+
+```text
+PC ── Pico Debug Probe/UART0 ── Pico 2 ── UART1 ── HC-06 ── Bluetooth
 ```
 
+O firmware também configura automaticamente módulos novos em 9600 baud para
+operarem em 115200 baud.
 
-## Diagrama
+## Hardware suportado
 
-![Diagrama](imgs/diagrama.png)
+- Raspberry Pi Pico 2 (`pico2`, RP2350 ARM Cortex-M33).
+- Pico Debug Probe para gravação SWD e terminal serial.
+- HC-06 com firmware `HC-06-20190901`.
+- Pico SDK 2.3.0 e GCC ARM 15.2.1.
 
-- **uart_rx_handler (ISR)**: Disparada pela interrupção da UART. Lê cada byte recebido do HC-06 e o envia diretamente para a fila `xQueueRX` via `xQueueSendFromISR`.
-- **serial_task**: Faz a ponte entre o PC (via USB/serial) e o Bluetooth. Lê bytes da `xQueueRX` e os imprime no PC; lê caracteres digitados no PC e os coloca na `xQueueTX`.
-- **tx_task**: Aguarda bytes na `xQueueTX` e os envia via UART ao módulo HC-06 (Bluetooth).
+O firmware consulta `AT+VERSION` antes de alterar o módulo. Uma versão diferente
+é informada como incompatível e não recebe comandos de configuração.
 
+## Ligações
 
-## Como configurar o nome e PIN do Bluetooth
+### HC-06 → Pico 2
 
-No `main.c`, o nome e o PIN do módulo Bluetooth são definidos conforme abaixo:
+| HC-06 | Pico 2 | Pino físico | Observação |
+|---|---|---:|---|
+| RXD | GP4 / UART1 TX | 6 | Entrada lógica de 3,3 V |
+| TXD | GP5 / UART1 RX | 7 | Saída lógica de 3,3 V |
+| GND | GND | 8 | Terra comum obrigatório |
+| VCC | VBUS / 5 V | 40 | Alimentação do breakout |
+
+`STATE` e `EN/KEY` não são utilizados.
+
+```text
+HC-06 RXD  <── GP4 (TX1)
+HC-06 TXD  ──> GP5 (RX1)
+HC-06 GND  ─── GND
+HC-06 VCC  <── VBUS 5 V
+```
+
+### Pico Debug Probe → Pico 2
+
+Além das conexões SWD, conecte a UART do Debug Probe à UART0 da Pico:
+
+```text
+Debug Probe UART RX  <── Pico GP0 (TX0)
+Debug Probe UART TX  ──> Pico GP1 (RX0)
+Debug Probe GND      ─── Pico GND
+```
+
+O terminal deve usar `115200, 8N1`, sem controle de fluxo e sem final de linha
+automático para testes AT.
+
+## Configuração automática do HC-06
+
+Na inicialização, o firmware:
+
+1. Aguarda 5 segundos para o HC-06 completar o boot.
+2. Procura o módulo primeiro em 115200 baud.
+3. Faz até três tentativas, com 5 segundos entre elas.
+4. Se necessário, repete o teste em 9600 baud.
+5. Consulta `AT+VERSION` e exige `HC-06-20190901`.
+6. Se o módulo estiver em 9600, envia `AT+BAUD8` e muda para 115200.
+7. Configura nome e PIN.
+8. Inicia a ponte serial usando FreeRTOS.
+
+Os comandos são enviados sem `CR`, `LF` ou `CR+LF`, conforme exigido pelo
+firmware validado:
+
+```text
+AT
+AT+VERSION
+AT+BAUD8
+AT+NAMELAB-EXPERT-BT
+AT+PIN1234
+```
+
+Nome e PIN são definidos em `main/main.c`:
 
 ```c
 #define HC06_NAME "LAB-EXPERT-BT"
 #define HC06_PIN  "1234"
 ```
-Para utilizar outro nome ou PIN, basta alterar esses valores no início do arquivo `main.c` antes de compilar o projeto.
 
-## Pareamento
+## Arquitetura FreeRTOS
 
-- **[Linux](https://marcqueiroz.wordpress.com/aventuras-com-arduino/configurando-hc-06-bluetooth-module-device-no-ubuntu-12-04/)**
-- **[Windows](https://embeddedprogrammer.blogspot.com/2012/07/windows-communicating-with-hc-06.html)**
+- `uart_rx_handler`: recebe bytes pela UART1 e os coloca em `xQueueRX` a partir
+  da interrupção.
+- `serial_task`: encaminha `xQueueRX` ao terminal do Debug Probe e coloca os
+  caracteres digitados no terminal em `xQueueTX`.
+- `tx_task`: retira bytes de `xQueueTX` e os transmite ao HC-06.
 
-## Testando a Comunicação Serial com Python
+## Compilação
 
-Para validar, monitorar ou interagir com o HC-06 a partir do seu PC, existe um programa Python simples chamado `terminal.py` incluso na pasta `python` do repositório.
+No VS Code, use a extensão oficial Raspberry Pi Pico e selecione:
 
-![Exemplo de uso do terminal Python](imgs/tela.png)
+```text
+Board: pico2
+SDK: 2.3.0
+Architecture: ARM
+```
 
+Pelo terminal:
 
+```powershell
+cmake -S . -B build -G Ninja -DPICO_BOARD=pico2
+ninja -C build
+```
 
-## Funcionamento geral
+Artefatos principais:
 
-O arquivo `terminal.py`, localizado na pasta `python`, permite abrir um terminal de comunicação simples, onde você deve selecionar ambas as portas COM utilizadas pelo Raspberry Pi Pico (normalmente uma para a UART do Bluetooth e outra para o console/USB).
+```text
+build/pico_emb.elf
+build/pico_emb.uf2
+```
 
-- O script utiliza a biblioteca `pyserial` para abrir as portas seriais conectadas ao Raspberry Pi Pico.
-- Durante a execução, você escolhe as duas portas seriais desejadas (ex: `COM3` para o console e `COM4` para o Bluetooth, ou `/dev/ttyACM0` e `/dev/ttyACM1`).
-- Tudo o que for digitado pode ser enviado para o módulo HC-06, e as respostas do Bluetooth serão mostradas no terminal.
-- O programa facilita testes tanto do controle Bluetooth quanto do monitoramento da porta de depuração do Pico.
+## Teste e diagnóstico
 
-### Como usar
-1. Instale a dependência Python caso necessário:
-   ```
-   pip install pyserial
-   ```
-2. Execute o script, por exemplo:
-   ```
-   python serial_terminal.py
-   ```
-3. Siga os prompts para abrir a porta correta e use normalmente.
+Um módulo configurado deve responder em um terminal USB-UART configurado para
+115200 baud e sem final de linha:
 
-## No Linux
+```text
+> AT
+OK
+> AT+VERSION
+HC-06-20190901
+```
 
-Para testar a comunicação Bluetooth no Linux, siga a configuração do HC-06 usada em aula e faça o pareamento normalmente pelo gerenciador de Bluetooth do sistema.
+Se não houver resposta:
+
+1. Confirme que GP4/GP5 são GPIOs, não os pinos físicos 4/5.
+2. Confirme RX/TX cruzados e GND comum.
+3. Desconecte qualquer outro transmissor da linha RXD do HC-06.
+4. Confirme que não existe conexão Bluetooth ativa durante os comandos AT.
+5. Aguarde pelo menos 5 segundos entre tentativas.
+
+Um CP210x pode ser usado como observador, conectando apenas `RXD` e `GND` à
+linha que será monitorada. Não conecte dois TXs simultaneamente à mesma entrada.
+
+## Terminal Python
+
+A pasta `python` contém uma interface gráfica com dois painéis seriais: um para
+o terminal da Pico via Debug Probe e outro para a porta Bluetooth pareada.
+
+```powershell
+pip install pyserial
+cd python
+python terminal.py
+```
+
+![Terminal Python](imgs/tela.png)
+
+## Referência
+
+- [Manual do HC-06](https://www.olimex.com/Products/Components/RF/BLUETOOTH-SERIAL-HC-06/resources/hc06.pdf)
