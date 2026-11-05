@@ -92,30 +92,6 @@ Nome e PIN são definidos em `main/main.c`:
   caracteres digitados no terminal em `xQueueTX`.
 - `tx_task`: retira bytes de `xQueueTX` e os transmite ao HC-06.
 
-## Compilação
-
-No VS Code, use a extensão oficial Raspberry Pi Pico e selecione:
-
-```text
-Board: pico2
-SDK: 2.3.0
-Architecture: ARM
-```
-
-Pelo terminal:
-
-```powershell
-cmake -S . -B build -G Ninja -DPICO_BOARD=pico2
-ninja -C build
-```
-
-Artefatos principais:
-
-```text
-build/pico_emb.elf
-build/pico_emb.uf2
-```
-
 ## Teste e diagnóstico
 
 Um módulo configurado deve responder em um terminal USB-UART configurado para
