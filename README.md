@@ -141,14 +141,48 @@ linha que será monitorada. Não conecte dois TXs simultaneamente à mesma entra
 
 ## Terminal Python
 
-A pasta `python` contém uma interface gráfica com dois painéis seriais: um para
-o terminal da Pico via Debug Probe e outro para a porta Bluetooth pareada.
+A pasta `python` contém uma interface gráfica com dois terminais independentes:
+
+- **Pico (UART):** porta serial do Pico Debug Probe. Ela exibe as mensagens de
+  inicialização, configuração e diagnóstico produzidas pela Pico 2.
+- **HC-06 (Bluetooth):** porta COM criada pelo sistema operacional depois do
+  pareamento. Ela representa o canal Bluetooth de dados do HC-06.
+
+As duas portas devem operar em 115200 baud depois que a configuração automática
+do módulo for concluída.
+
+### Instalação
 
 ```powershell
 pip install pyserial
+```
+
+### Execução
+
+Execute o programa a partir da pasta `python`, pois as últimas portas escolhidas
+são armazenadas no arquivo `settings.json` dessa pasta:
+
+```powershell
 cd python
 python terminal.py
 ```
+
+### Utilização
+
+1. Clique em **Atualizar Portas**.
+2. No painel esquerdo, selecione a COM do Pico Debug Probe.
+3. No painel direito, selecione a COM Bluetooth criada pelo pareamento do HC-06.
+4. Configure os dois painéis para 115200 baud.
+5. Clique em **Conectar** nos dois painéis.
+6. Envie uma mensagem por um painel e confira sua chegada no outro.
+
+Não é possível abrir a mesma porta simultaneamente no terminal Python e no
+Serial Monitor do VS Code. Clique em **Stop Monitoring** antes de conectar o
+programa Python à COM do Debug Probe.
+
+O recurso **Spam** transmite palavras periodicamente e pode ser usado para
+testar comunicação contínua, filas e perda de bytes. Comece com um intervalo
+alto e reduza gradualmente durante o teste.
 
 ![Terminal Python](imgs/tela.png)
 
